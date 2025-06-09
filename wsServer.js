@@ -1,43 +1,44 @@
 import express from 'express'
 import { WebSocketServer } from 'ws'
+import http from 'http'
 
 const app = express()
 app.use(express.json())
 
 const clients = new Set()
 
-// Создаём WebSocket-сервер
-const ws = new WebSocketServer()
+// Создаём HTTP-сервер
+const server = http.createServer(app)
 
-const http = app.listen(3001, '0.0.0.0', () => {
-    console.log('WebSocket сервер работает на порту 3001')
-})
+// Создаём WebSocket-сервер (в режиме noServer)
+const wss = new WebSocketServer({ noServer: true })
 
-http.on('upgrade', (req, socket, head) => {
+server.on('upgrade', (req, socket, head) => {
     if (req.url === '/ws') {
-        ws.handleUpgrade(req, socket, head, (ws) => {
-            ws.emit('connection', ws, req)
+        wss.handleUpgrade(req, socket, head, (ws) => {
+            wss.emit('connection', ws, req) // ✅ передаём ws, не wss
         })
     } else {
         socket.destroy()
     }
 })
 
-// Храним всех клиентов
-ws.on('connection', (ws) => {
+wss.on('connection', (ws) => {
     clients.add(ws)
     console.log('🧍 Клиент подключён. Клиентов:', clients.size)
 
-    if(clients.size > 1) {
-        client.send(JSON.stringify({ type: 'setPlayer', state: 2 }))
+    if (clients.size > 1) {
+        ws.send(JSON.stringify({ type: 'setPlayer', state: 2 }))
+    } else {
+        ws.send(JSON.stringify({ type: 'setPlayer', state: 1 }))
     }
+
     ws.on('close', () => {
         clients.delete(ws)
         console.log('🚪 Клиент отключён. Осталось:', clients.size)
     })
 })
 
-// Эндпоинт для отправки обновлений
 app.post('/broadcast', (req, res) => {
     const gameState = req.body
 
@@ -48,4 +49,10 @@ app.post('/broadcast', (req, res) => {
     }
 
     res.sendStatus(200)
+})
+
+// Запускаем сервер
+const PORT = process.env.PORT || 3001
+server.listen(PORT, () => {
+    console.log(`🚀 WebSocket-сервер запущен на порту ${PORT}`)
 })
