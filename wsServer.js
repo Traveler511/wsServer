@@ -28,9 +28,9 @@ wss.on('connection', (ws) => {
     clients.add(ws)
     console.log('🧍 Клиент 1подключён. Клиентов:', clients.size)
 
-    if(clients.size > 1) {
-        client.send(JSON.stringify({ type: 'setPlayer', state: 2 }))
-    }
+    // if(clients.size > 1) {
+    //     client.send(JSON.stringify({ type: 'setPlayer', state: 2 }))
+    // }
     ws.on('close', () => {
         clients.delete(ws)
         console.log('🚪 Клиент отключён. Осталось:', clients.size)
